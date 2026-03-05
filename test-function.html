@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="tg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Санҷиши Edge Function - Bozorcha</title>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; max-width: 500px; margin: auto; line-height: 1.6; background-color: #f4f7f6; }
+        .card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #333; font-size: 22px; text-align: center; }
+        button { padding: 14px 24px; background: #ff9800; color: white; border: none; border-radius: 8px; width: 100%; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 16px; }
+        button:hover { background: #e68900; transform: translateY(-2px); }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 8px; min-height: 40px; word-wrap: break-word; text-align: center; font-weight: 500; border: 1px solid #eee; }
+        .status-info { font-size: 12px; color: #666; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>🚀 Санҷиши Telegram Bot</h1>
+        <p>Ин тугма тавассути Edge Function ба Telegram-и администратор хабар мефиристад.</p>
+
+        <button id="sendBtn" onclick="sendTest()">Фиристодани паём</button>
+
+        <div id="result">Омода барои санҷиш...</div>
+        <p class="status-info">Эзоҳ: Танҳо корбарони воридшуда метавонанд паём фиристанд.</p>
+    </div>
+
+    <script>
+        // Танзимоти Supabase
+        const SUPABASE_URL = "https://seagtlaujnnhoyitgsdd.supabase.co";
+        const ANON_KEY = "sb_publishable_OlLChtOja0i8nIrPZuM_Og_vyfGjfsP";
+        const FUNCTION_URL = `${SUPABASE_URL}/functions/v1/test-function-html`;
+
+        const _supabase = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+        async function sendTest() {
+            const resultDiv = document.getElementById("result");
+            const btn = document.getElementById("sendBtn");
+            
+            resultDiv.innerHTML = "⏳ Дархост рафта истодааст...";
+            resultDiv.style.color = "#007bff";
+            btn.disabled = true;
+
+            try {
+                // 1. Гирифтани сессияи воқеии корбар
+                const { data: { session }, error: sessionError } = await _supabase.auth.getSession();
+
+                if (sessionError || !session) {
+                    throw new Error("Шумо ворид нашудаед! Лутфан аввал ба систем ворид шавед.");
+                }
+
+                // 2. Гирифтани маълумоти корбар барои паём
+                const userEmail = session.user.email;
+
+                // 3. Фиристодани дархости бехатар ба Edge Function
+                const response = await fetch(FUNCTION_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "apikey": ANON_KEY,
+                        "Authorization": `Bearer ${session.access_token}` // ИН ҶО TOKEN-И ВОҚЕӢ АСТ
+                    },
+                    body: JSON.stringify({
+                        message: "🔔 Санҷиши амниятӣ муваффақ шуд!",
+                        user_name: userEmail,
+                        chat_id: "test_channel_001"
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || `Хатогии сервер: ${response.status}`);
+                }
+
+                console.log("Response:", data);
+                resultDiv.innerHTML = "✅ Муваффақият! Паём ба Telegram расид.";
+                resultDiv.style.color = "#28a745";
+                resultDiv.style.backgroundColor = "#eafff0";
+
+            } catch (error) {
+                console.error("Error details:", error);
+                resultDiv.innerHTML = "❌ Хатогӣ: " + error.message;
+                resultDiv.style.color = "#dc3545";
+                resultDiv.style.backgroundColor = "#fff5f5";
+            } finally {
+                btn.disabled = false;
+            }
+        }
+    </script>
+
+</body>
+</html>
